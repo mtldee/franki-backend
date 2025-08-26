@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const { sequelize, User } = require("./models");
+const { sequelize, User } = require("../models");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { authorizeRole } = require("./middlewares/auth");
@@ -8,6 +8,9 @@ const { authorizeRole } = require("./middlewares/auth");
 
 const app = express();
 app.use(express.json());
+
+const cors = require("cors");
+app.use(cors({ origin: "http://localhost:5173" }));
 
 app.get("/", (req, res) => {
   res.send("Servidor funcionando 🚀");
