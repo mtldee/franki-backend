@@ -6,7 +6,7 @@ module.exports = {
     await queryInterface.removeColumn('Users', 'age');
 
     await queryInterface.addColumn('Users', 'grade', {
-      type: Sequelize.STRING,
+      type: Sequelize.INTEGER,
       allowNull: true,
       defaultValue: null
     });
