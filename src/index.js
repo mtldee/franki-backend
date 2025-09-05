@@ -118,6 +118,40 @@ app.get("/activities", async (req, res) => {
   }
 });
 
+// GET /activities/:id
+// GET /activities/:id
+app.get("/activities/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log("ID recibido:", id);
+
+    const activity = await sequelize.models.Activity.findByPk(id, {
+      include: [
+        {
+          model: sequelize.models.Course,
+          as: "course", // 👈 tienes que usar el alias igual que en findAll
+          attributes: ["id", "name", "grade", "letter"]
+        },
+        {
+          model: sequelize.models.User,
+          as: "teacher", // 👈 mismo alias
+          attributes: ["id", "username"]
+        },
+      ],
+    });
+
+    if (!activity) {
+      return res.status(404).json({ error: "Actividad no encontrada" });
+    }
+
+    res.json(activity);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener la actividad" });
+  }
+});
+
+
 
 app.listen(3000, async () => {
   console.log("Servidor corriendo en http://localhost:3000");
