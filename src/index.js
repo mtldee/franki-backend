@@ -119,7 +119,6 @@ app.get("/activities", async (req, res) => {
 });
 
 // GET /activities/:id
-// GET /activities/:id
 app.get("/activities/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -129,12 +128,12 @@ app.get("/activities/:id", async (req, res) => {
       include: [
         {
           model: sequelize.models.Course,
-          as: "course", // 👈 tienes que usar el alias igual que en findAll
+          as: "course",
           attributes: ["id", "name", "grade", "letter"]
         },
         {
           model: sequelize.models.User,
-          as: "teacher", // 👈 mismo alias
+          as: "teacher", 
           attributes: ["id", "username"]
         },
       ],
