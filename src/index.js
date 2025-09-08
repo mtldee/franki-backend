@@ -150,6 +150,39 @@ app.get("/activities/:id", async (req, res) => {
   }
 });
 
+// PATCH /activities/:id
+app.patch("/activities/:id", authorizeRole("teacher"), async (req, res) => {
+  try {
+    console.log("PATCH /activities/:id");
+    console.log("Cuerpo de la solicitud:", req.body);
+    console.log("Parámetros de la solicitud:", req.params);
+    console.log("Usuario autenticado:", req.user);
+    const { id } = req.params;
+    const teacherId = req.user.id;
+    const { status } = req.body;
+
+    const activity = await sequelize.models.Activity.findByPk(id);
+    if (!activity) {
+      return res.status(404).json({ error: "Actividad no encontrada" });
+    }
+
+    const course = await sequelize.models.Course.findOne({
+      where: { id: activity.courseId, teacherId }
+    });
+
+    if (!course) {
+      return res.status(403).json({ error: "No puedes modificar esta actividad" });
+    }
+    if (status !== undefined) activity.status = status;
+    await activity.save();
+
+    res.json({ message: "Actividad actualizada", activity });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al actualizar la actividad" });
+  }
+});
+
 
 
 app.listen(3000, async () => {
