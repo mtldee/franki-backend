@@ -16,7 +16,7 @@ module.exports = {
         type: Sequelize.STRING
       },
       status: {
-        type: Sequelize.STRING
+        type: Sequelize.INTEGER
       },
       icon: {
         type: Sequelize.STRING

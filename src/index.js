@@ -19,18 +19,25 @@ app.get("/", (req, res) => {
 // LOGIN
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
+  console.log("Intento de login:", username);
+  if (!username || !password) {
+    return res.status(400).json({ error: "Faltan campos" });
+  }
 
   const user = await User.findOne({ where: { username } });
   if (!user) return res.status(401).json({ error: "Usuario no encontrado" });
+  console.log("Usuario encontrado:", username);
 
   const match = await bcrypt.compare(password, user.password);
   if (!match) return res.status(401).json({ error: "Contraseña incorrecta" });
+  console.log("Login exitoso para usuario:", username);
 
   const token = jwt.sign(
     { id: user.id, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: "1h" }
   );
+  console.log("Token generado para usuario:", username);
   res.json({ message: "Login exitoso", token, role: user.role });
 });
 
@@ -150,7 +157,70 @@ app.get("/activities/:id", async (req, res) => {
   }
 });
 
+// PATCH /activities/:id
+app.patch("/activities/:id", authorizeRole("teacher"), async (req, res) => {
+  try {
+    console.log("PATCH /activities/:id");
+    console.log("Cuerpo de la solicitud:", req.body);
+    console.log("Parámetros de la solicitud:", req.params);
+    console.log("Usuario autenticado:", req.user);
+    const { id } = req.params;
+    const teacherId = req.user.id;
+    const { status } = req.body;
 
+    const activity = await sequelize.models.Activity.findByPk(id);
+    if (!activity) {
+      return res.status(404).json({ error: "Actividad no encontrada" });
+    }
+
+    const course = await sequelize.models.Course.findOne({
+      where: { id: activity.courseId, teacherId }
+    });
+
+    if (!course) {
+      return res.status(403).json({ error: "No puedes modificar esta actividad" });
+    }
+    if (status !== undefined) activity.status = status;
+    await activity.save();
+
+    res.json({ message: "Actividad actualizada", activity });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al actualizar la actividad" });
+  }
+});
+
+// GET /users/:courseId/students
+app.get("/users/:courseId/students", authorizeRole("teacher"), async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const teacherId = req.user.id;
+
+    const course = await sequelize.models.Course.findOne({
+      where: { id: courseId, teacherId }
+    });
+
+    if (!course) {
+      return res.status(403).json({ error: "No puedes ver los estudiantes de este curso" });
+    }
+
+    const students = await sequelize.models.User.findAll({
+      include: [{
+        model: sequelize.models.Course,
+        as: 'courses',
+        where: { id: courseId },
+        attributes: []
+      }],
+      where: { role: 0 }, 
+      attributes: ['id', 'username', 'school', 'grade', 'year']
+    });
+
+    res.json(students);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al traer estudiantes" });
+  }
+});
 
 app.listen(3000, async () => {
   console.log("Servidor corriendo en http://localhost:3000");
