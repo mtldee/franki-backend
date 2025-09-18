@@ -4,6 +4,7 @@ const { sequelize, User } = require("../models");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { authorizeRole } = require("./middlewares/auth");
+const { authenticateToken } = require("./middlewares/token");
 
 
 const app = express();
@@ -41,13 +42,33 @@ app.post("/login", async (req, res) => {
   res.json({ message: "Login exitoso", token, role: user.role });
 });
 
-app.get("/student/dashboard", authorizeRole("student"), (req, res) => {
-  res.send("Bienvenido alumno");
+// PATCH /users/change-password
+app.patch("/users/change-password", authenticateToken, async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ error: "Debes enviar ambas contraseñas" });
+    }
+
+    const user = await sequelize.models.User.findByPk(userId);
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    const match = await bcrypt.compare(oldPassword, user.password);
+    if (!match) return res.status(401).json({ error: "Contraseña actual incorrecta" });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    await user.save();
+
+    res.json({ message: "Contraseña actualizada correctamente ✅" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al cambiar la contraseña" });
+  }
 });
 
-app.get("/teacher/dashboard", authorizeRole("teacher"), (req, res) => {
-  res.send("Bienvenido profesor");
-});
 
 // POST /activities
 app.post("/activities", authorizeRole("teacher"), async (req, res) => {
@@ -92,35 +113,37 @@ app.get("/teacher/courses", authorizeRole("teacher"), async (req, res) => {
   }
 });
 
-app.get("/activities", async (req, res) => {
-  console.log("GET /activities");
+// GET /activities
+app.get("/activities", authorizeRole(), async (req, res) => {
   try {
-    const activities = await sequelize.models.Activity.findAll({
-      include: [
-        {
-          model: sequelize.models.Course,
-          as: "course",
-          attributes: ["name"]
-        },
-        {
-          model: sequelize.models.User,
-          as: "teacher",
-          attributes: ["username"]
-        }
-      ]
-    });
+    const { courseId } = req.query;
+    const user = req.user;
 
-    const formatted = activities.map(act => ({
-      id: act.id,
-      title: act.title,
-      description: act.course?.name || "Sin curso",
-      status: act.status,
-      icon: act.icon || "⭕️" 
-    }));
+    let where = {};
+    if (courseId) where.courseId = courseId;
 
-    res.json(formatted);
-  } catch (err) {
-    console.error(err);
+    if (user.role === "teacher") {
+      // solo actividades de sus cursos
+      const teacherCourses = await sequelize.models.Course.findAll({ 
+        where: { teacherId: user.id }, 
+        attributes: ['id'] 
+      });
+      const ids = teacherCourses.map(c => c.id);
+      where.courseId = courseId || ids;
+    } else if (user.role === "student") {
+      // solo actividades activas y del curso en el que está
+      const student = await sequelize.models.User.findByPk(user.id, {
+        include: { model: sequelize.models.Course, as: "courses", attributes: ['id'] }
+      });
+      const ids = student.courses.map(c => c.id);
+      where.courseId = courseId || ids;
+      where.status = true; // solo activas
+    }
+
+    const activities = await sequelize.models.Activity.findAll({ where });
+    res.json(activities);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Error al traer actividades" });
   }
 });
