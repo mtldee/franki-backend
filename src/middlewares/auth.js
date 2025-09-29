@@ -1,8 +1,7 @@
 const jwt = require("jsonwebtoken");
-require('dotenv').config();
+require("dotenv").config();
 
-
-function authorizeRole(role) {
+function authorizeRole(roles = []) {
   return (req, res, next) => {
     const authHeader = req.headers["authorization"];
     if (!authHeader) return res.status(403).json({ error: "No autorizado" });
@@ -12,12 +11,15 @@ function authorizeRole(role) {
       if (err) return res.status(403).json({ error: "Token inválido" });
 
       req.user = decoded;
-      if (role === "teacher" && decoded.role !== 1) {
+
+      // Si roles es un único string, lo pasamos a array
+      if (!Array.isArray(roles)) roles = [roles];
+
+      // Chequear si el rol del usuario está permitido
+      if (!roles.includes(decoded.role)) {
         return res.status(403).json({ error: "Rol no permitido" });
       }
-      if (role === "student" && decoded.role !== 0) {
-        return res.status(403).json({ error: "Rol no permitido" });
-      }
+
       next();
     });
   };

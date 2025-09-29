@@ -245,6 +245,42 @@ app.get("/users/:courseId/students", authorizeRole("teacher"), async (req, res) 
   }
 });
 
+app.post("/teachers", authorizeRole(2), async (req, res) => {
+  try {
+    const { username, password, schoolId } = req.body;
+
+    if (!username || !password || !schoolId) {
+      return res.status(400).json({ error: "Faltan datos" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const teacher = await User.create({
+      username,
+      password: hashedPassword,
+      schoolId: schoolId,
+      role: 1, // rol profesor
+    });
+
+    res.status(201).json({ message: "Profesor creado con éxito", teacher });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al crear profesor" });
+  }
+});
+
+app.get("/schools", authorizeRole(2), async (req, res) => {
+  try {
+    const schools = await sequelize.models.School.findAll({
+      attributes: ['id', 'name']
+    });
+    res.json(schools);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al traer escuelas" });
+  }
+});
+
 app.listen(3000, async () => {
   console.log("Servidor corriendo en http://localhost:3000");
   await sequelize.authenticate();
