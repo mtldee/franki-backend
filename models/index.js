@@ -1,15 +1,20 @@
 'use strict';
 
-let sequelize;
+const fs = require('fs');
+const path = require('path');
+const process = require('process');
+const Sequelize = require('sequelize'); // <- importante!
+const basename = path.basename(__filename);
+const db = {};
 
+// Inicialización de Sequelize usando variables de entorno
+let sequelize;
 if (process.env.DATABASE_URL) {
-  // Para Render, si usas DATABASE_URL en Managed Database
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: process.env.DB_DIALECT || 'mysql',
     logging: false,
   });
 } else {
-  // Conexión manual usando variables de entorno
   sequelize = new Sequelize(
     process.env.DB_NAME,
     process.env.DB_USER,
@@ -23,8 +28,8 @@ if (process.env.DATABASE_URL) {
   );
 }
 
-fs
-  .readdirSync(__dirname)
+// Cargar modelos
+fs.readdirSync(__dirname)
   .filter(file => {
     return (
       file.indexOf('.') !== 0 &&
