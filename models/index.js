@@ -9,12 +9,16 @@ const db = {};
 
 // Inicialización de Sequelize usando variables de entorno
 let sequelize;
+
 if (process.env.DATABASE_URL) {
+  // Si tienes URL completa (Render Managed DB)
   sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: process.env.DB_DIALECT || 'mysql',
+    dialect: process.env.DB_DIALECT || 'postgres',
+    protocol: 'postgres',
     logging: false,
   });
 } else {
+  // Conexión manual separando host, user, password
   sequelize = new Sequelize(
     process.env.DB_NAME,
     process.env.DB_USER,
