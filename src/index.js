@@ -11,7 +11,7 @@ const app = express();
 app.use(express.json());
 
 const cors = require("cors");
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: "https://franki-vxof.onrender.com" }));
 
 app.get("/", (req, res) => {
   res.send("Servidor funcionando 🚀");
