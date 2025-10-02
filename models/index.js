@@ -2,22 +2,38 @@
 
 const fs = require('fs');
 const path = require('path');
-const Sequelize = require('sequelize');
 const process = require('process');
+const Sequelize = require('sequelize'); // <- importante!
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
 const db = {};
 
+// Inicialización de Sequelize usando variables de entorno
 let sequelize;
-if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
+
+if (process.env.DATABASE_URL) {
+  // Si tienes URL completa (Render Managed DB)
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: process.env.DB_DIALECT || 'postgres',
+    protocol: 'postgres',
+    logging: false,
+  });
 } else {
-  sequelize = new Sequelize(config.database, config.username, config.password, config);
+  // Conexión manual separando host, user, password
+  sequelize = new Sequelize(
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
+    {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT || 3306,
+      dialect: process.env.DB_DIALECT || 'mysql',
+      logging: false,
+    }
+  );
 }
 
-fs
-  .readdirSync(__dirname)
+// Cargar modelos
+fs.readdirSync(__dirname)
   .filter(file => {
     return (
       file.indexOf('.') !== 0 &&
