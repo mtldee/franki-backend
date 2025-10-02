@@ -7,6 +7,8 @@
   "start": "NODE_ENV=production node src/index.js",
   "dev": "NODE_ENV=development node src/index.js",
 
+  "dev:drop": "NODE_ENV=development npx sequelize-cli db:drop && npm run dev:create",
+  "dev:create": "NODE_ENV=development npx sequelize-cli db:create",
   "dev:migrate": "NODE_ENV=development npx sequelize-cli db:migrate",
   "dev:seed": "NODE_ENV=development npx sequelize-cli db:seed:all",
   "dev:reset": "NODE_ENV=development npx sequelize-cli db:migrate:undo:all && npm run dev:migrate && npm run dev:seed",
