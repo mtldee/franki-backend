@@ -167,9 +167,10 @@ app.get("/activities", authorizeRole([0, 1, 2]), async (req, res) => {
 
 
 // GET /activities/:id
-app.get("/activities/:id", async (req, res) => {
+app.get("/activities/:id", authorizeRole([0, 1, 2]), async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("ID de la actividad solicitada:", id); // --- IGNORE ---
 
     const activity = await sequelize.models.Activity.findByPk(id, {
       include: [
@@ -189,6 +190,7 @@ app.get("/activities/:id", async (req, res) => {
     if (!activity) {
       return res.status(404).json({ error: "Actividad no encontrada" });
     }
+    console.log("Actividad encontrada:", activity); // --- IGNORE ---
 
     res.json(activity);
   } catch (err) {
@@ -198,11 +200,12 @@ app.get("/activities/:id", async (req, res) => {
 });
 
 // PATCH /activities/:id
+// PATCH /activities/:id
 app.patch("/activities/:id", authorizeRole(1), async (req, res) => {
   try {
     const { id } = req.params;
     const teacherId = req.user.id;
-    const { status } = req.body;
+    const { title, description, status, icon, courseId, startDate, endDate } = req.body;
 
     const activity = await sequelize.models.Activity.findByPk(id);
     if (!activity) {
@@ -216,7 +219,16 @@ app.patch("/activities/:id", authorizeRole(1), async (req, res) => {
     if (!course) {
       return res.status(403).json({ error: "No puedes modificar esta actividad" });
     }
+
+    // Actualizamos solo si vienen en el body
+    if (title !== undefined) activity.title = title;
+    if (description !== undefined) activity.description = description;
     if (status !== undefined) activity.status = status;
+    if (icon !== undefined) activity.icon = icon;
+    if (courseId !== undefined) activity.courseId = courseId;
+    if (startDate !== undefined) activity.startDate = startDate;
+    if (endDate !== undefined) activity.endDate = endDate;
+
     await activity.save();
 
     res.json({ message: "Actividad actualizada", activity });
@@ -225,6 +237,7 @@ app.patch("/activities/:id", authorizeRole(1), async (req, res) => {
     res.status(500).json({ error: "Error al actualizar la actividad" });
   }
 });
+
 
 
 // GET /teacher/courses
